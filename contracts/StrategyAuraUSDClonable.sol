@@ -297,7 +297,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
     event Cloned(address indexed clone);
 
     // we use this to clone our original strategy to other vaults
-    function cloneConvex3BalRewards(
+    function cloneStrategyAuraUSD(
         address _vault,
         address _strategist,
         address _rewards,
@@ -354,7 +354,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         string memory _name
     ) internal {
         // make sure that we haven't initialized this before
-        require(address(balancerPool) == address(0)); // already initialized.
+        require(address(rewardsContract) == address(0)); // already initialized.
 
         // You can set these parameters on deployment to whatever you want
         maxReportDelay = 21 days; // 21 days in seconds, if we hit this then harvestTrigger = True
@@ -387,9 +387,6 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
 
         // these are our approvals and path specific to this contract
         usdc.approve(address(balancerVault), type(uint256).max);
-
-        // start with usdt
-        targetStable = address(usdc);
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -520,10 +517,10 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
 
         //Match the token address with the desired index for this trade
         IAsset[] memory assets = new IAsset[](4);
-        assets[0] = IAsset(balToken);
-        assets[1] = IAsset(auraToken);
-        assets[2] = IAsset(referenceToken);
-        assets[3] = IAsset(usdcAddress);
+        assets[0] = IAsset(address(bal));
+        assets[1] = IAsset(address(auraToken));
+        assets[2] = IAsset(address(weth));
+        assets[3] = IAsset(address(usdc));
         
         //Only min we need to set is for the balances going in
         int[] memory limits = new int[](4);
@@ -569,7 +566,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
             abi.encode(0)
         );
 
-        assets[0] = IAsset(usddc);
+        assets[0] = IAsset(address(usdc));
         assets[1] = IAsset(0x9210F1204b5a24742Eba12f710636D76240dF3d0);
         assets[2] = IAsset(address(want));
 
@@ -715,7 +712,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
             address virtualRewardsPool = rewardsContract.extraRewards(i);
             address _rewardsToken =
                 IConvexRewards(virtualRewardsPool).rewardToken();
-            IERC20(_rewardToken).safeApprove(tradeFactory, 0);
+            IERC20(_rewardsToken).safeApprove(tradeFactory, 0);
             tf.disable(_rewardsToken, address(want));
         }
 
@@ -733,8 +730,8 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
             address virtualRewardsPool = rewardsContract.extraRewards(i);
             address _rewardsToken =
                 IConvexRewards(virtualRewardsPool).rewardToken();
-            IERC20(_rewardToken).safeApprove(tradeFactory, type(uint256).max);
-            tf.enable(_rewardToken, address(want));
+            IERC20(_rewardsToken).safeApprove(_tradeFactory, type(uint256).max);
+            ITradeFactory(_tradeFactory).enable(_rewardsToken, address(want));
         }
     }
 

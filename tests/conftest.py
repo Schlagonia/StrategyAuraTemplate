@@ -43,7 +43,7 @@ chain_used = 1
 # If testing a Convex strategy, set this equal to your PID
 @pytest.fixture(scope="module")
 def pid():
-    pid = 40  # mim 40, OUSD 56
+    pid = 4  # mim 40, OUSD 56
     yield pid
 
 
@@ -59,7 +59,7 @@ def whale(accounts, amount, token):
     # Totally in it for the tech
     # Update this with a large holder of your want token (the largest EOA holder of LP)
     # MIM 0xBA12222222228d8Ba445958a75a0704d566BF2C8, OUSD 0x89eBCb7714bd0D2F33ce3a35C12dBEB7b94af169
-    whale = accounts.at("0xBA12222222228d8Ba445958a75a0704d566BF2C8", force=True)
+    whale = accounts.at("0x3a3ee61f7c6e1994a2001762250a5e17b2061b6d", force=True)
     if token.balanceOf(whale) < 2 * amount:
         raise ValueError(
             "Our whale needs more funds. Find another whale or reduce your amount variable."
@@ -70,7 +70,7 @@ def whale(accounts, amount, token):
 # this is the name we want to give our strategy
 @pytest.fixture(scope="module")
 def strategy_name():
-    strategy_name = "StrategyConvexMIM"
+    strategy_name = "StrategyAuraUSD"
     yield strategy_name
 
 
@@ -123,7 +123,7 @@ def sleep_time():
     hour = 3600
 
     # change this one right here
-    hours_to_sleep = 4
+    hours_to_sleep = 6
 
     sleep_time = hour * hours_to_sleep
     yield sleep_time
@@ -138,19 +138,19 @@ if chain_used == 1:  # mainnet
     # all contracts below should be able to stay static based on the pid
     @pytest.fixture(scope="module")
     def booster():  # this is the deposit contract
-        yield Contract("0xF403C135812408BFbE8713b5A23a04b3D48AAE31")
+        yield Contract("0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10")
 
     @pytest.fixture(scope="function")
     def voter():
-        yield Contract("0xF147b8125d2ef93FB6965Db97D6746952a133934")
+        yield "0xc999dE72BFAFB936Cb399B94A8048D24a27eD1Ff"
 
     @pytest.fixture(scope="function")
     def convexToken():
-        yield Contract("0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B")
+        yield Contract("0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF")
 
     @pytest.fixture(scope="function")
     def crv():
-        yield Contract("0xD533a949740bb3306d119CC777fa900bA034cd52")
+        yield Contract("0xba100000625a3754423978a60c9317c58a424e3D")
 
     @pytest.fixture(scope="module")
     def other_vault_strategy():
@@ -171,7 +171,7 @@ if chain_used == 1:  # mainnet
     @pytest.fixture(scope="module")
     def farmed():
         # this is the token that we are farming and selling for more of our want.
-        yield Contract("0xD533a949740bb3306d119CC777fa900bA034cd52")
+        yield Contract("0xba100000625a3754423978a60c9317c58a424e3D")
 
     # zero address
     @pytest.fixture(scope="module")
@@ -207,13 +207,9 @@ if chain_used == 1:  # mainnet
 
     # curve deposit pool
     @pytest.fixture(scope="module")
-    def pool(token, curve_registry, zero_address):
-        if curve_registry.get_pool_from_lp_token(token) == zero_address:
-            poolAddress = token
-        else:
-            _poolAddress = curve_registry.get_pool_from_lp_token(token)
-            poolAddress = Contract(_poolAddress)
-        yield poolAddress
+    def pool(token):
+        
+        yield token
 
     @pytest.fixture(scope="module")
     def gasOracle():
@@ -257,7 +253,7 @@ if chain_used == 1:  # mainnet
     def vault(pm, gov, rewards, guardian, management, token, chain):
         Vault = pm(config["dependencies"][0]).Vault
         vault = guardian.deploy(Vault)
-        vault.initialize(token, gov, rewards, "", "", guardian)
+        vault.initialize(token, gov, rewards, "", "", guardian,  {"from": gov})
         vault.setDepositLimit(2**256 - 1, {"from": gov})
         vault.setManagement(management, {"from": gov})
         chain.sleep(1)
@@ -266,7 +262,7 @@ if chain_used == 1:  # mainnet
     # replace the first value with the name of your strategy
     @pytest.fixture(scope="function")
     def strategy(
-        StrategyConvex3CrvRewardsClonable,
+        StrategyAuraUSDClonable,
         strategist,
         keeper,
         vault,
@@ -286,10 +282,9 @@ if chain_used == 1:  # mainnet
     ):
         # make sure to include all constructor parameters needed here
         strategy = strategist.deploy(
-            StrategyConvex3CrvRewardsClonable,
+            StrategyAuraUSDClonable,
             vault,
             pid,
-            pool,
             strategy_name,
         )
         strategy.setKeeper(keeper, {"from": gov})
@@ -309,7 +304,7 @@ if chain_used == 1:  # mainnet
         chain.mine(1)
 
         # for MIM we use index 0
-        strategy.updateRewards(True, 0, {"from": gov})
+        #strategy.updateRewards(True, 0, {"from": gov})
 
         # set up custom params and setters
         strategy.setHarvestTriggerParams(90000e6, 150000e6, 1e24, False, {"from": gov})

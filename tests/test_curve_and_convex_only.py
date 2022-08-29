@@ -13,7 +13,7 @@ def test_update_to_zero_then_back(
     keeper,
     rewards,
     chain,
-    StrategyConvex3CrvRewardsClonable,
+    StrategyAuraUSDClonable,
     voter,
     proxy,
     pid,
@@ -33,17 +33,16 @@ def test_update_to_zero_then_back(
         return
 
     ## clone our strategy, set our rewards to none
-    tx = strategy.cloneConvex3CrvRewards(
+    tx = strategy.cloneStrategyAuraUSD(
         vault,
         strategist,
         rewards,
         keeper,
         pid,
-        pool,
         strategy_name,
         {"from": gov},
     )
-    newStrategy = StrategyConvex3CrvRewardsClonable.at(tx.return_value)
+    newStrategy = StrategyAuraUSDClonable.at(tx.return_value)
 
     # revoke and send all funds back to vault
     vault.revokeStrategy(strategy, {"from": gov})
@@ -56,9 +55,6 @@ def test_update_to_zero_then_back(
     assert vault.strategies(newStrategy)[2] == 10_000
     assert vault.withdrawalQueue(0) == strategy
     assert vault.strategies(strategy)["debtRatio"] == 0
-
-    # setup our rewards on our new stategy
-    newStrategy.updateRewards(True, 0, {"from": gov})
 
     ## deposit to the vault after approving; this is basically just our simple_harvest test
     before_pps = vault.pricePerShare()
@@ -95,31 +91,6 @@ def test_update_to_zero_then_back(
         ),
     )
 
-    # check what we have
-    _rewards_token = newStrategy.rewardsToken()
-    rewards_token = Contract(_rewards_token)
-    assert newStrategy.hasRewards() == True
-    assert (
-        rewards_token.allowance(
-            newStrategy, "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
-        )
-        > 0
-    )
-
-    # turn off our rewards
-    newStrategy.updateRewards(False, 0, {"from": gov})
-    assert newStrategy.rewardsToken() == zero_address
-    assert newStrategy.hasRewards() == False
-    if (
-        has_rewards
-    ):  # if we have a separate reward token (not CVX) check that our allowance is zero
-        assert (
-            rewards_token.allowance(
-                newStrategy, "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
-            )
-            == 0
-        )
-
     # track our new pps and assets
     new_pps = vault.pricePerShare()
     old_assets_dai = vault.totalAssets()
@@ -137,45 +108,6 @@ def test_update_to_zero_then_back(
     # Display estimated APR
     print(
         "\nEstimated DAI APR (Rewards Off): ",
-        "{:.2%}".format(
-            ((new_assets_dai - old_assets_dai) * (365 * 4))
-            / (newStrategy.estimatedTotalAssets())
-        ),
-    )
-
-    # add our rewards token, harvest to take the profit from it. this should be extra high yield from this harvest
-    newStrategy.updateRewards(True, 0, {"from": gov})
-
-    # assert that we set things up correctly
-    assert newStrategy.rewardsToken() == _rewards_token
-    assert newStrategy.hasRewards() == True
-    assert (
-        rewards_token.allowance(
-            newStrategy, "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
-        )
-        > 0
-    )
-
-    # track our new pps and assets
-    new_pps = vault.pricePerShare()
-    old_assets_dai = vault.totalAssets()
-
-    # simulate 6 hours of earnings so we don't outrun our convex earmark
-    chain.sleep(21600)
-    chain.mine(1)
-
-    # harvest with our new rewards token attached
-    newStrategy.harvest({"from": gov})
-
-    # confirm that we are selling our rewards token
-    assert newStrategy.rewardsToken() == rewards_token
-    assert newStrategy.hasRewards() == True
-    assert rewards_token.balanceOf(newStrategy) == 0
-    new_assets_dai = vault.totalAssets()
-
-    # Display estimated APR
-    print(
-        "\nEstimated DAI APR (Rewards Back On, 6 hours of rewards tokens): ",
         "{:.2%}".format(
             ((new_assets_dai - old_assets_dai) * (365 * 4))
             / (newStrategy.estimatedTotalAssets())
@@ -204,9 +136,7 @@ def test_update_from_zero_to_off(
     keeper,
     rewards,
     chain,
-    StrategyConvex3CrvRewardsClonable,
-    voter,
-    proxy,
+    StrategyAuraUSDClonable,
     pid,
     amount,
     pool,
@@ -224,17 +154,16 @@ def test_update_from_zero_to_off(
         return
 
     ## clone our strategy, set our rewards to none
-    tx = strategy.cloneConvex3CrvRewards(
+    tx = strategy.cloneStrategyAuraUSD(
         vault,
         strategist,
         rewards,
         keeper,
         pid,
-        pool,
         strategy_name,
         {"from": gov},
     )
-    newStrategy = StrategyConvex3CrvRewardsClonable.at(tx.return_value)
+    newStrategy = StrategyAuraUSDClonable.at(tx.return_value)
 
     # revoke and send all funds back to vault
     vault.revokeStrategy(strategy, {"from": gov})
@@ -242,9 +171,6 @@ def test_update_from_zero_to_off(
 
     # attach our new strategy and approve it on the proxy
     vault.addStrategy(newStrategy, 10_000, 0, 2**256 - 1, 1_000, {"from": gov})
-
-    # setup our rewards on our new stategy
-    newStrategy.updateRewards(True, 0, {"from": gov})
 
     assert vault.withdrawalQueue(1) == newStrategy
     assert vault.strategies(newStrategy)[2] == 10_000
@@ -287,31 +213,6 @@ def test_update_from_zero_to_off(
         ),
     )
 
-    # check what we have
-    _rewards_token = newStrategy.rewardsToken()
-    rewards_token = Contract(_rewards_token)
-    assert newStrategy.hasRewards() == True
-    assert (
-        rewards_token.allowance(
-            newStrategy, "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
-        )
-        > 0
-    )
-
-    # turn off our rewards
-    newStrategy.updateRewards(False, 0, {"from": gov})
-    assert newStrategy.rewardsToken() == zero_address
-    assert newStrategy.hasRewards() == False
-    if (
-        has_rewards
-    ):  # if we have a separate reward token (not CVX) check that our allowance is zero
-        assert (
-            rewards_token.allowance(
-                newStrategy, "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
-            )
-            == 0
-        )
-
     # track our new pps and assets
     new_pps = vault.pricePerShare()
     old_assets_dai = vault.totalAssets()
@@ -329,42 +230,6 @@ def test_update_from_zero_to_off(
     # Display estimated APR
     print(
         "\nEstimated DAI APR (Rewards Off): ",
-        "{:.2%}".format(
-            ((new_assets_dai - old_assets_dai) * (365 * 4))
-            / (newStrategy.estimatedTotalAssets())
-        ),
-    )
-
-    # try turning off our rewards again
-    newStrategy.updateRewards(False, 0, {"from": gov})
-    assert newStrategy.rewardsToken() == zero_address
-    assert newStrategy.hasRewards() == False
-    if (
-        has_rewards
-    ):  # if we have a separate reward token (not CVX) check that our allowance is zero
-        assert (
-            rewards_token.allowance(
-                newStrategy, "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
-            )
-            == 0
-        )
-
-    # track our new pps and assets
-    old_assets_dai = vault.totalAssets()
-
-    # simulate 6 hours of earnings so we don't outrun our convex earmark
-    chain.sleep(21600)
-    chain.mine(1)
-
-    # harvest with our new rewards token attached
-    newStrategy.harvest({"from": gov})
-    chain.sleep(1)
-    chain.mine(1)
-    new_assets_dai = vault.totalAssets()
-
-    # Display estimated APR
-    print(
-        "\nEstimated DAI APR (Rewards Off Still): ",
         "{:.2%}".format(
             ((new_assets_dai - old_assets_dai) * (365 * 4))
             / (newStrategy.estimatedTotalAssets())
@@ -392,9 +257,7 @@ def test_change_rewards(
     keeper,
     rewards,
     chain,
-    StrategyConvex3CrvRewardsClonable,
-    voter,
-    proxy,
+    StrategyAuraUSDClonable,
     pid,
     amount,
     pool,
@@ -410,17 +273,16 @@ def test_change_rewards(
         return
 
     ## clone our strategy, set our rewards to none
-    tx = strategy.cloneConvex3CrvRewards(
+    tx = strategy.cloneStrategyAuraUSD(
         vault,
         strategist,
         rewards,
         keeper,
         pid,
-        pool,
         strategy_name,
         {"from": gov},
     )
-    newStrategy = StrategyConvex3CrvRewardsClonable.at(tx.return_value)
+    newStrategy = StrategyAuraUSDClonable.at(tx.return_value)
 
     # revoke and send all funds back to vault
     vault.revokeStrategy(strategy, {"from": gov})
@@ -428,9 +290,6 @@ def test_change_rewards(
 
     # attach our new strategy and approve it on the proxy
     vault.addStrategy(newStrategy, 10_000, 0, 2**256 - 1, 1_000, {"from": gov})
-
-    # setup our rewards on our new stategy
-    newStrategy.updateRewards(True, 0, {"from": gov})
 
     ## deposit to the vault after approving; this is basically just our simple_harvest test
     before_pps = vault.pricePerShare()
@@ -463,47 +322,6 @@ def test_change_rewards(
             / (newStrategy.estimatedTotalAssets())
         ),
     )
-
-
-# basic rewards check
-def test_check_rewards(
-    gov,
-    token,
-    vault,
-    strategist,
-    whale,
-    strategy,
-    keeper,
-    rewards,
-    chain,
-    StrategyConvex3CrvRewardsClonable,
-    voter,
-    proxy,
-    pid,
-    amount,
-    pool,
-    strategy_name,
-    gauge,
-    zero_address,
-    has_rewards,
-    convexToken,
-    is_curve,
-    is_convex,
-):
-    # skip these tests if not curve or convex strategy
-    if not is_convex and not is_curve:
-        print("Don't need to do these tests if not Curve or Convex strategy")
-        return
-
-    # check if our strategy has extra rewards
-    rewards_token = Contract(strategy.rewardsToken())
-    print("\nThis is our rewards token:", rewards_token.name())
-
-    # if we're supposed to have a rewards token, make sure it's not CVX
-    if has_rewards:
-        assert convexToken != rewards_token
-    else:
-        assert zero_address == rewards_token
 
 
 # this one tests if we don't have any CRV to send to voter or any left over after sending
@@ -536,7 +354,7 @@ def test_weird_amounts(
     chain.mine(1)
 
     # take 100% of our CRV to the voter
-    strategy.setKeepCRV(10000, {"from": gov})
+    strategy.setKeepBAL(10000, {"from": gov})
     chain.sleep(1)
     chain.mine(1)
     strategy.harvest({"from": gov})
@@ -545,16 +363,6 @@ def test_weird_amounts(
     chain.sleep(86400 * 7)
     chain.mine(1)
 
-    # switch to USDC, want to not have any profit tho
-    strategy.setOptimal(1, {"from": gov})
-    strategy.harvest({"from": gov})
-
-    # sleep for a week to get some profit
-    chain.sleep(86400 * 7)
-    chain.mine(1)
-
-    # switch to USDT, want to not have any profit tho
-    strategy.setOptimal(2, {"from": gov})
     strategy.harvest({"from": gov})
 
     # sleep for a week to get some profit
@@ -562,7 +370,7 @@ def test_weird_amounts(
     chain.mine(1)
 
     # take 0% of our CRV to the voter
-    strategy.setKeepCRV(0, {"from": gov})
+    strategy.setKeepBAL(0, {"from": gov})
     chain.sleep(1)
     chain.mine(1)
     strategy.harvest({"from": gov})
@@ -599,121 +407,19 @@ def test_more_rewards_stuff(
     vault.deposit(amount, {"from": whale})
     strategy.harvest({"from": gov})
 
-    # we do this twice to hit both branches of the if statement
-    strategy.updateRewards(False, 0, {"from": gov})
-    strategy.updateRewards(False, 0, {"from": gov})
-
-    # set our optimal to DAI without rewards on
-    strategy.setOptimal(0, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # set our optimal to USDC without rewards on
-    strategy.setOptimal(1, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # set our optimal to USDT without rewards on
-    strategy.setOptimal(2, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # we do this twice to hit both branches of the if statement
-    strategy.updateRewards(True, 0, {"from": gov})
-    strategy.updateRewards(True, 0, {"from": gov})
-
-    # set our optimal to DAI with rewards on
-    strategy.setOptimal(0, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # set our optimal to USDC with rewards on
-    strategy.setOptimal(1, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # set our optimal to USDT with rewards on
-    strategy.setOptimal(2, {"from": gov})
-
     # sleep for a day to get some profit
     chain.sleep(86400)
     chain.mine(1)
     strategy.harvest({"from": gov})
 
     # take 100% of our CRV to the voter
-    strategy.setKeepCRV(10000, {"from": gov})
+    strategy.setKeepBAL(10000, {"from": gov})
     chain.sleep(1)
     chain.mine(1)
     tx = strategy.harvest(
         {"from": gov}
     )  # this one seems to randomly fail sometimes, adding sleep/mine before fixed it, likely because of updating the view variable?
 
-    # we do this twice to hit both branches of the if statement
-    strategy.updateRewards(False, 0, {"from": gov})
-    strategy.updateRewards(False, 0, {"from": gov})
-
-    # set our optimal to DAI without rewards on
-    strategy.setOptimal(0, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # set our optimal to USDC without rewards on
-    strategy.setOptimal(1, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # set our optimal to USDT without rewards on
-    strategy.setOptimal(2, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # we do this twice to hit both branches of the if statement
-    strategy.updateRewards(True, 0, {"from": gov})
-    strategy.updateRewards(True, 0, {"from": gov})
-
-    # set our optimal to DAI with rewards on
-    strategy.setOptimal(0, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # set our optimal to USDC with rewards on
-    strategy.setOptimal(1, {"from": gov})
-
-    # sleep for a day to get some profit
-    chain.sleep(86400)
-    chain.mine(1)
-    strategy.harvest({"from": gov})
-
-    # set our optimal to USDT with rewards on
-    strategy.setOptimal(2, {"from": gov})
-
     # sleep for a day to get some profit
     chain.sleep(86400)
     chain.mine(1)
@@ -722,13 +428,9 @@ def test_more_rewards_stuff(
     # sleep for a day to get some profit
     chain.sleep(86400)
     chain.mine(1)
-
-    # can't set to 4
-    with brownie.reverts():
-        strategy.setOptimal(4, {"from": gov})
 
     # take 0% of our CRV to the voter
-    strategy.setKeepCRV(0, {"from": gov})
+    strategy.setKeepBAL(0, {"from": gov})
     chain.sleep(1)
     chain.mine(1)
     strategy.harvest({"from": gov})

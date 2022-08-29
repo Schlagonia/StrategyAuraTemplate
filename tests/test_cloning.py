@@ -12,7 +12,7 @@ def test_cloning(
     keeper,
     rewards,
     chain,
-    StrategyConvex3CrvRewardsClonable,
+    StrategyAuraUSDClonable,
     rewardsContract,
     pid,
     amount,
@@ -27,7 +27,7 @@ def test_cloning(
         tx = strategy.cloneConvex3CrvRewards(
             vault, strategist, rewards, keeper, pid, pool, strategy_name, {"from": gov}
         )
-        newStrategy = StrategyConvex3CrvRewardsClonable.at(tx.return_value)
+        newStrategy = StrategyAuraUSDClonable.at(tx.return_value)
     else:
         # Shouldn't be able to call initialize again
         with brownie.reverts():
@@ -37,16 +37,15 @@ def test_cloning(
                 rewards,
                 keeper,
                 pid,
-                pool,
                 strategy_name,
                 {"from": gov},
             )
 
         ## clone our strategy
-        tx = strategy.cloneConvex3CrvRewards(
-            vault, strategist, rewards, keeper, pid, pool, strategy_name, {"from": gov}
+        tx = strategy.cloneStrategyAuraUSD(
+            vault, strategist, rewards, keeper, pid, strategy_name, {"from": gov}
         )
-        newStrategy = StrategyConvex3CrvRewardsClonable.at(tx.return_value)
+        newStrategy = StrategyAuraUSDClonable.at(tx.return_value)
 
         # Shouldn't be able to call initialize again
         with brownie.reverts():
@@ -56,20 +55,18 @@ def test_cloning(
                 rewards,
                 keeper,
                 pid,
-                pool,
                 strategy_name,
                 {"from": gov},
             )
 
         ## shouldn't be able to clone a clone
         with brownie.reverts():
-            newStrategy.cloneConvex3CrvRewards(
+            newStrategy.cloneStrategyAuraUSD(
                 vault,
                 strategist,
                 rewards,
                 keeper,
                 pid,
-                pool,
                 strategy_name,
                 {"from": gov},
             )

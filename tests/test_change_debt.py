@@ -34,7 +34,7 @@ def test_change_debt(
     strategy.harvest({"from": gov})
     chain.sleep(1)
 
-    assert strategy.estimatedTotalAssets() <= startingStrategy
+    assert strategy.estimatedTotalAssets() < startingStrategy
 
     # simulate one day of earnings
     chain.sleep(sleep_time)

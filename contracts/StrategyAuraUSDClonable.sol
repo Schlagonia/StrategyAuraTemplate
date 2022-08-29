@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
-import {IUniswapV2Router02} from "./interfaces/uniswap.sol";
 import {
     BaseStrategy,
     StrategyParams
@@ -20,10 +19,6 @@ import {ITradeFactory} from "./interfaces/ySwaps/ITradeFactory.sol";
 
 interface IBaseFee {
     function isCurrentBaseFeeAcceptable() external view returns (bool);
-}
-
-interface IOracle {
-    function latestAnswer() external view returns (uint256);
 }
 
 interface IFeedRegistry {
@@ -270,9 +265,9 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         bytes32(0xc29562b045d80fd77c69bec09541f5c16fe20d9d000200000000000000000251);
     bytes32 internal constant ethUsdcPoolId =
         bytes32(0x96646936b91d6b9d7d0c47c496afbf3d6ec7b6f8000200000000000000000019);
-        //The want Balancer Pool Id
+    //The want Balancer Pool Id
     bytes32 internal poolId;
-
+    //We will swap rewards to usdc to create new lp position on harvests due to higher liquidity
     IERC20 internal constant usdc =
         IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
@@ -359,14 +354,15 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         // You can set these parameters on deployment to whatever you want
         maxReportDelay = 21 days; // 21 days in seconds, if we hit this then harvestTrigger = True
         healthCheck = 0xDDCea799fF1699e98EDF118e0629A974Df7DF012; // health.ychad.eth
-        harvestProfitMin = 60000e6;
-        harvestProfitMax = 120000e6;
+        harvestProfitMin = 1_000e6;
+        harvestProfitMax = 10_000e6;
         creditThreshold = 1e6 * 1e18;
 
         // want = Balancer LP
         want.approve(address(depositContract), type(uint256).max);
         auraToken.approve(address(balancerVault), type(uint256).max);
         bal.approve(address(balancerVault), type(uint256).max);
+        usdc.approve(address(balancerVault), type(uint256).max);
 
         // this is the pool specific to this vault, but we only use it as an address
         poolId = IBalancerPool(address(want)).getPoolId();
@@ -384,9 +380,6 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
 
         // set our strategy's name
         stratName = _name;
-
-        // these are our approvals and path specific to this contract
-        usdc.approve(address(balancerVault), type(uint256).max);
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -550,6 +543,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         IAsset[] memory assets = new IAsset[](3);
         int[] memory limits = new int[](3);
 
+        //Swap usdc -> bb-usdc
         swaps[0] = IBalancerVault.BatchSwapStep(
             bytes32(0x9210f1204b5a24742eba12f710636d76240df3d00000000000000000000000fc),
             0,
@@ -558,6 +552,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
             abi.encode(0)
         );
 
+        //swap bb-usdc -> bb-USD
         swaps[1] = IBalancerVault.BatchSwapStep(
             poolId,
             1,

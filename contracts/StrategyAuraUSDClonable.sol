@@ -32,20 +32,20 @@ interface IFeedRegistry {
     );
 }
 
-interface IConvexRewards {
-    // strategy's staked balance in the synthetix staking contract
+interface IAuraRewards {
+    // strategy's staked balance in the staking contract
     function balanceOf(address account) external view returns (uint256);
 
     // read how much claimable BAL a strategy has
     function earned(address account) external view returns (uint256);
 
-    // stake a convex tokenized deposit
+    // stake a aura tokenized deposit
     function stake(uint256 _amount) external returns (bool);
 
-    // withdraw to a convex tokenized deposit, probably never need to use this
+    // withdraw to a aura tokenized deposit, probably never need to use this
     function withdraw(uint256 _amount, bool _claim) external returns (bool);
 
-    // withdraw directly to curve LP token, this is what we primarily use
+    // withdraw directly to bpt token, this is what we primarily use
     function withdrawAndUnwrap(uint256 _amount, bool _claim)
         external
         returns (bool);
@@ -68,15 +68,15 @@ interface IConvexRewards {
     function periodFinish() external view returns (uint256);
 }
 
-interface IConvexDeposit {
-    // deposit into convex, receive a tokenized deposit.  parameter to stake immediately (we always do this).
+interface IAuraDeposit {
+    // deposit into Aura, receive a tokenized deposit.  parameter to stake immediately (we always do this).
     function deposit(
         uint256 _pid,
         uint256 _amount,
         bool _stake
     ) external returns (bool);
 
-    // burn a tokenized deposit (Convex deposit tokens) to receive curve lp tokens back
+    // burn a tokenized deposit (Aura deposit tokens) to receive Bal lp tokens back
     function withdraw(uint256 _pid, uint256 _amount) external returns (bool);
 
     // give us info about a pool based on its pid
@@ -99,10 +99,10 @@ abstract contract StrategyAuraBase is BaseStrategy {
     /* ========== STATE VARIABLES ========== */
     // these should stay the same across different wants.
 
-    // convex stuff
+    // Aura stuff
     address internal constant depositContract =
         0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10; // this is the deposit contract that all pools use, aka booster
-    IConvexRewards public rewardsContract; // This is unique to each curve pool
+    IAuraRewards public rewardsContract; // This is unique to each Balancer pool
     uint256 public pid; // this is unique to each pool
 
     // keepBAL stuff
@@ -127,7 +127,7 @@ abstract contract StrategyAuraBase is BaseStrategy {
 
     string internal stratName;
 
-    // convex-specific variables
+    // aura-specific variables
     bool public claimRewards; // boolean if we should always claim rewards when withdrawing, usually via withdrawAndUnwrap (generally this should be false)
 
     /* ========== CONSTRUCTOR ========== */
@@ -140,7 +140,7 @@ abstract contract StrategyAuraBase is BaseStrategy {
         return stratName;
     }
 
-    /// @notice How much want we have staked in Convex
+    /// @notice How much want we have staked in Aura
     function stakedBalance() public view returns (uint256) {
         return rewardsContract.balanceOf(address(this));
     }
@@ -165,11 +165,11 @@ abstract contract StrategyAuraBase is BaseStrategy {
         if (emergencyExit) {
             return;
         }
-        // Send all of our Curve pool tokens to be deposited
+        // Send all of our Bal pool tokens to be deposited
         uint256 _toInvest = balanceOfWant();
-        // deposit into convex and stake immediately (but only if we have something to invest)
+        // deposit into Aura and stake immediately (but only if we have something to invest)
         if (_toInvest > 0) {
-            IConvexDeposit(depositContract).deposit(pid, _toInvest, true);
+            IAuraDeposit(depositContract).deposit(pid, _toInvest, true);
         }
     }
 
@@ -206,9 +206,9 @@ abstract contract StrategyAuraBase is BaseStrategy {
         return balanceOfWant();
     }
 
-    // in case we need to exit into the convex deposit token, this will allow us to do that
+    // in case we need to exit into the aura deposit token, this will allow us to do that
     // make sure to check claimRewards before this step if needed
-    // plan to have gov sweep convex deposit tokens from strategy after this
+    // plan to have gov sweep aura deposit tokens from strategy after this
     function withdrawToConvexDepositTokens() external onlyVaultManagers {
         uint256 _stakedBal = stakedBalance();
         if (_stakedBal > 0) {
@@ -265,12 +265,16 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         bytes32(0xc29562b045d80fd77c69bec09541f5c16fe20d9d000200000000000000000251);
     bytes32 internal constant ethUsdcPoolId =
         bytes32(0x96646936b91d6b9d7d0c47c496afbf3d6ec7b6f8000200000000000000000019);
-    //The want Balancer Pool Id
-    bytes32 internal poolId;
+    bytes32 internal constant bbUSDCPoolId =
+        bytes32(0x9210f1204b5a24742eba12f710636d76240df3d00000000000000000000000fc);
     //We will swap rewards to usdc to create new lp position on harvests due to higher liquidity
     IERC20 internal constant usdc =
         IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-
+    address internal constant bbUSDCPool =
+        0x9210F1204b5a24742Eba12f710636D76240dF3d0;
+    //The want Balancer Pool Id
+    bytes32 internal poolId;
+    
     //address of the trade factory to be used for extra rewards
     address public tradeFactory;
 
@@ -348,9 +352,6 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         uint256 _pid,
         string memory _name
     ) internal {
-        // make sure that we haven't initialized this before
-        require(address(rewardsContract) == address(0)); // already initialized.
-
         // You can set these parameters on deployment to whatever you want
         maxReportDelay = 21 days; // 21 days in seconds, if we hit this then harvestTrigger = True
         healthCheck = 0xDDCea799fF1699e98EDF118e0629A974Df7DF012; // health.ychad.eth
@@ -368,12 +369,12 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         poolId = IBalancerPool(address(want)).getPoolId();
 
         // setup our rewards contract
-        pid = _pid; // this is the pool ID on convex, we use this to determine what the reweardsContract address is
+        pid = _pid; // this is the pool ID on aura, we use this to determine what the reweardsContract address is
         (address lptoken, , , address _rewardsContract, , ) =
-            IConvexDeposit(depositContract).poolInfo(_pid);
+            IAuraDeposit(depositContract).poolInfo(_pid);
 
         // set up our rewardsContract
-        rewardsContract = IConvexRewards(_rewardsContract);
+        rewardsContract = IAuraRewards(_rewardsContract);
 
         // check that our LP token based on our pid matches our want
         require(address(lptoken) == address(want));
@@ -426,7 +427,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
             _debtPayment = Math.min(_debtOutstanding, _withdrawnBal);
         }
 
-        // serious loss should never happen, but if it does (for instance, if Curve is hacked), let's record it accurately
+        // serious loss should never happen, but if it does (for instance, if Balancer is hacked), let's record it accurately
         uint256 assets = estimatedTotalAssets();
         uint256 debt = vault.strategies(address(this)).totalDebt;
 
@@ -519,7 +520,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         int[] memory limits = new int[](4);
         limits[0] = int(_balAmount);
         limits[1] = int(_auraAmount);
-            
+        
         balancerVault.batchSwap(
             IBalancerVault.SwapKind.GIVEN_IN, 
             swaps, 
@@ -545,7 +546,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
 
         //Swap usdc -> bb-usdc
         swaps[0] = IBalancerVault.BatchSwapStep(
-            bytes32(0x9210f1204b5a24742eba12f710636d76240df3d00000000000000000000000fc),
+            bbUSDCPoolId,
             0,
             1,
             balance,
@@ -562,7 +563,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         );
 
         assets[0] = IAsset(address(usdc));
-        assets[1] = IAsset(0x9210F1204b5a24742Eba12f710636D76240dF3d0);
+        assets[1] = IAsset(bbUSDCPool);
         assets[2] = IAsset(address(want));
 
         limits[0] = int(balance);
@@ -592,7 +593,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
 
         // only check if we need to earmark on vaults we know are problematic
         if (checkEarmark) {
-            // don't harvest if we need to earmark convex rewards
+            // don't harvest if we need to earmark aura rewards
             if (needsEarmarkReward()) {
                 return false;
             }
@@ -661,10 +662,10 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
                 .isCurrentBaseFeeAcceptable();
     }
 
-    /// @notice True if someone needs to earmark rewards on Convex before keepers harvest again
-    // check if someone needs to earmark rewards on convex before keepers harvest again
+    /// @notice True if someone needs to earmark rewards on aura before keepers harvest again
+    // check if someone needs to earmark rewards on aura before keepers harvest again
     function needsEarmarkReward() public view returns (bool needsEarmark) {
-        // check if there is any CRV we need to earmark
+        // check if there is any BAL we need to earmark
         uint256 balExpiry = rewardsContract.periodFinish();
         if (balExpiry < block.timestamp) {
             return true;
@@ -706,7 +707,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         for(uint256 i; i < extraRewards; i ++) {
             address virtualRewardsPool = rewardsContract.extraRewards(i);
             address _rewardsToken =
-                IConvexRewards(virtualRewardsPool).rewardToken();
+                IAuraRewards(virtualRewardsPool).rewardToken();
             IERC20(_rewardsToken).safeApprove(tradeFactory, 0);
             tf.disable(_rewardsToken, address(want));
         }
@@ -724,7 +725,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         for(uint256 i; i < extraRewards; i ++) {
             address virtualRewardsPool = rewardsContract.extraRewards(i);
             address _rewardsToken =
-                IConvexRewards(virtualRewardsPool).rewardToken();
+                IAuraRewards(virtualRewardsPool).rewardToken();
             IERC20(_rewardsToken).safeApprove(_tradeFactory, type(uint256).max);
             ITradeFactory(_tradeFactory).enable(_rewardsToken, address(want));
         }
@@ -735,7 +736,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
     // These functions are useful for setting parameters of the strategy that may need to be adjusted.
 
 
-    // Min profit to start checking for harvests if gas is good, max will harvest no matter gas (both in USDT, 6 decimals). Credit threshold is in want token, and will trigger a harvest if credit is large enough. check earmark to look at convex's booster.
+    // Min profit to start checking for harvests if gas is good, max will harvest no matter gas (both in USDT, 6 decimals). Credit threshold is in want token, and will trigger a harvest if credit is large enough. check earmark to look at aura's booster.
     function setHarvestTriggerParams(
         uint256 _harvestProfitMin,
         uint256 _harvestProfitMax,

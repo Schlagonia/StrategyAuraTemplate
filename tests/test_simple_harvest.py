@@ -18,7 +18,8 @@ def test_simple_harvest(
     amount,
     sleep_time,
     convexToken,
-    crv
+    crv,
+    usdc
 ):
     ## deposit to the vault after approving
     startingWhale = token.balanceOf(whale)
@@ -49,10 +50,16 @@ def test_simple_harvest(
 
     # harvest, store new asset amount
     chain.sleep(1)
+    #make sure we have something to claim
+    assert strategy.claimableBalance() > 0
     strategy.harvest({"from": gov})
+
+    #make sure we claimed and sold all assets back into want
+    assert strategy.claimableBalance() == 0
     chain.sleep(1)
     assert convexToken.balanceOf(strategy) == 0
     assert crv.balanceOf(strategy) == 0
+    assert usdc.balanceOf(strategy) == 0
     new_assets = vault.totalAssets()
     # confirm we made money, or at least that we have about the same
     assert new_assets >= old_assets

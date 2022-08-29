@@ -46,6 +46,9 @@ def pid():
     pid = 4  # mim 40, OUSD 56
     yield pid
 
+@pytest.fixture(scope="module")
+def usdc():
+    yield Contract("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 
 # this is the amount of funds we have our whale deposit. adjust this as needed based on their wallet balance
 @pytest.fixture(scope="module")

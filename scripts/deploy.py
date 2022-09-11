@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from brownie import Strategy, accounts, config, network, project, web3
+from brownie import StrategyAuraUSDClonable, accounts, config, network, project, web3
 from eth_utils import is_checksum_address
 import click
 
@@ -55,4 +55,4 @@ def main():
     if input("Deploy Strategy? y/[N]: ").lower() != "y":
         return
 
-    strategy = Strategy.deploy(vault, {"from": dev}, publish_source=publish_source)
+    strategy = StrategyAuraUSDClonable.deploy(vault, 4, "BB-A-USD Aura Staker", {"from": dev}, publish_source=publish_source)

@@ -667,9 +667,7 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
     function needsEarmarkReward() public view returns (bool needsEarmark) {
         // check if there is any BAL we need to earmark
         uint256 balExpiry = rewardsContract.periodFinish();
-        if (balExpiry < block.timestamp) {
-            return true;
-        }
+        return balExpiry < block.timestamp;
     }
 
    // ---------------------- YSWAPS FUNCTIONS ----------------------\\
@@ -747,6 +745,10 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         harvestProfitMax = _harvestProfitMax;
         creditThreshold = _creditThreshold;
         checkEarmark = _checkEarmark;
+    }
+
+    function manualClaimRewards() external onlyVaultManagers {
+        rewardsContract.getReward(address(this), true);
     }
 
     function getFundManagement() 

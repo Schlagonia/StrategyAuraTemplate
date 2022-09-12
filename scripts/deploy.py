@@ -55,4 +55,4 @@ def main():
     if input("Deploy Strategy? y/[N]: ").lower() != "y":
         return
 
-    strategy = StrategyAuraUSDClonable.deploy(vault, 4, "BB-A-USD Aura Staker", {"from": dev}, publish_source=publish_source)
+    strategy = StrategyAuraUSDClonable.deploy(vault, 4, "BB-A-USD Aura Auto Staker", {"from": dev}, publish_source=publish_source)

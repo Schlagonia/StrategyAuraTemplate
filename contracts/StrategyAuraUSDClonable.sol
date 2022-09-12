@@ -7,10 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
-import {
-    BaseStrategy,
-    StrategyParams
-} from "@yearnvaults/contracts/BaseStrategy.sol";
+import {BaseStrategy} from "@yearnvaults/contracts/BaseStrategy.sol";
+import {StrategyParams} from "@yearnvaults/contracts/BaseStrategy.sol";
 
 import { IBalancerVault } from "./interfaces/Balancer/IBalancerVault.sol";
 import { IBalancerPool } from "./interfaces/Balancer/IBalancerPool.sol";

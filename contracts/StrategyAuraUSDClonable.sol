@@ -263,15 +263,15 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         bytes32(0xc29562b045d80fd77c69bec09541f5c16fe20d9d000200000000000000000251);
     bytes32 internal constant ethUsdcPoolId =
         bytes32(0x96646936b91d6b9d7d0c47c496afbf3d6ec7b6f8000200000000000000000019);
-    bytes32 internal constant bbUSDCPoolId =
-        bytes32(0x9210f1204b5a24742eba12f710636d76240df3d00000000000000000000000fc);
     //We will swap rewards to usdc to create new lp position on harvests due to higher liquidity
     IERC20 internal constant usdc =
         IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address internal constant bbUSDCPool =
-        0x9210F1204b5a24742Eba12f710636D76240dF3d0;
+    address internal constant fiat = 0x586Aa273F262909EEF8fA02d90Ab65F5015e0516;
+    address internal constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     //The want Balancer Pool Id
     bytes32 internal poolId;
+    
+    IAsset[] internal assets; // assets of the pool
     
     //address of the trade factory to be used for extra rewards
     address public tradeFactory;
@@ -379,6 +379,11 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
 
         // set our strategy's name
         stratName = _name;
+
+        assets = new IAsset[](3); 
+        assets[0] = IAsset(fiat);
+        assets[1] = IAsset(dai);
+        assets[2] = IAsset(address(usdc));
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -538,41 +543,23 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         uint256 balance = IERC20(usdc).balanceOf(address(this));
         if(balance == 0) return;
 
-        IBalancerVault.BatchSwapStep[] memory swaps = new IBalancerVault.BatchSwapStep[](2);
-        IAsset[] memory assets = new IAsset[](3);
-        int[] memory limits = new int[](3);
+        uint256[] memory _maxAmountsIn = new uint256[](3);
+        _maxAmountsIn[2] = balance; // max USDC in is our USDC balance
 
-        //Swap usdc -> bb-usdc
-        swaps[0] = IBalancerVault.BatchSwapStep(
-            bbUSDCPoolId,
-            0,
-            1,
-            balance,
-            abi.encode(0)
-        );
+        bytes memory _userData = abi.encode(
+                IBalancerVault.JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT,
+                _maxAmountsIn,
+                0
+            );
 
-        //swap bb-usdc -> bb-USD
-        swaps[1] = IBalancerVault.BatchSwapStep(
+        IBalancerVault.JoinPoolRequest memory _request = IBalancerVault
+            .JoinPoolRequest(assets, _maxAmountsIn, _userData, false);
+
+        balancerVault.joinPool(
             poolId,
-            1,
-            2,
-            0,
-            abi.encode(0)
-        );
-
-        assets[0] = IAsset(address(usdc));
-        assets[1] = IAsset(bbUSDCPool);
-        assets[2] = IAsset(address(want));
-
-        limits[0] = int(balance);
-        
-        balancerVault.batchSwap(
-            IBalancerVault.SwapKind.GIVEN_IN, 
-            swaps, 
-            assets, 
-            getFundManagement(), 
-            limits, 
-            block.timestamp
+            address(this),
+            address(this),
+            _request
         );
     }
 

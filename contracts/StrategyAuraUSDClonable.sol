@@ -264,12 +264,12 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
     bytes32 internal constant ethUsdcPoolId =
         bytes32(0x96646936b91d6b9d7d0c47c496afbf3d6ec7b6f8000200000000000000000019);
     bytes32 internal constant bbUSDCPoolId =
-        bytes32(0x9210f1204b5a24742eba12f710636d76240df3d00000000000000000000000fc);
+        bytes32(0x82698aecc9e28e9bb27608bd52cf57f704bd1b83000000000000000000000336);
     //We will swap rewards to usdc to create new lp position on harvests due to higher liquidity
     IERC20 internal constant usdc =
         IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address internal constant bbUSDCPool =
-        0x9210F1204b5a24742Eba12f710636D76240dF3d0;
+        0x82698aeCc9E28e9Bb27608Bd52cF57f704BD1B83;
     //The want Balancer Pool Id
     bytes32 internal poolId;
     

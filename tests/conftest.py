@@ -44,6 +44,7 @@ chain_used = 1
 @pytest.fixture(scope="module")
 def pid():
     pid = 17  # mim 40, OUSD 56
+
     yield pid
 
 @pytest.fixture(scope="module")
@@ -62,7 +63,9 @@ def whale(accounts, amount, token):
     # Totally in it for the tech
     # Update this with a large holder of your want token (the largest EOA holder of LP)
     # MIM 0xBA12222222228d8Ba445958a75a0704d566BF2C8, OUSD 0x89eBCb7714bd0D2F33ce3a35C12dBEB7b94af169
+
     whale = accounts.at("0xDD4Db3ff8A37FE418dB6FF34fC316655528B6bbC", force=True)
+
     if token.balanceOf(whale) < 2 * amount:
         raise ValueError(
             "Our whale needs more funds. Find another whale or reduce your amount variable."
@@ -141,7 +144,7 @@ if chain_used == 1:  # mainnet
     # all contracts below should be able to stay static based on the pid
     @pytest.fixture(scope="module")
     def booster():  # this is the deposit contract
-        yield Contract("0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10")
+        yield Contract("0xA57b8d98dAE62B26Ec3bcC4a365338157060B234")
 
     @pytest.fixture(scope="function")
     def voter():

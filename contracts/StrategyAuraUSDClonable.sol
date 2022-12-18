@@ -99,7 +99,7 @@ abstract contract StrategyAuraBase is BaseStrategy {
 
     // Aura stuff
     address internal constant depositContract =
-        0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10; // this is the deposit contract that all pools use, aka booster
+        0xA57b8d98dAE62B26Ec3bcC4a365338157060B234; // this is the deposit contract that all pools use, aka booster
     IAuraRewards public rewardsContract; // This is unique to each Balancer pool
     uint256 public pid; // this is unique to each pool
 
@@ -263,11 +263,13 @@ contract StrategyAuraUSDClonable is StrategyAuraBase {
         bytes32(0xc29562b045d80fd77c69bec09541f5c16fe20d9d000200000000000000000251);
     bytes32 internal constant ethUsdcPoolId =
         bytes32(0x96646936b91d6b9d7d0c47c496afbf3d6ec7b6f8000200000000000000000019);
+
     //We will swap rewards to usdc to create new lp position on harvests due to higher liquidity
     IERC20 internal constant usdc =
         IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address internal constant fiat = 0x586Aa273F262909EEF8fA02d90Ab65F5015e0516;
     address internal constant dai = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+
     //The want Balancer Pool Id
     bytes32 internal poolId;
     

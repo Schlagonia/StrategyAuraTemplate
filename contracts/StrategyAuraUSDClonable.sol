@@ -99,7 +99,7 @@ abstract contract StrategyAuraBase is BaseStrategy {
 
     // Aura stuff
     address internal constant depositContract =
-        0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10; // this is the deposit contract that all pools use, aka booster
+        0xA57b8d98dAE62B26Ec3bcC4a365338157060B234; // this is the deposit contract that all pools use, aka booster
     IAuraRewards public rewardsContract; // This is unique to each Balancer pool
     uint256 public pid; // this is unique to each pool
 

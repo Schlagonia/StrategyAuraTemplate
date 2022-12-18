@@ -110,7 +110,7 @@ interface IBalancerVault {
     );
 
     function getPoolTokens(bytes32 poolId) external view returns (
-        IERC20[] calldata tokens,
+        IAsset[] calldata tokens,
         uint256[] calldata balances,
         uint256 lastChangeBlock
     );

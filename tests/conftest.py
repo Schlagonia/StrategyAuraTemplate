@@ -43,7 +43,8 @@ chain_used = 1
 # If testing a Convex strategy, set this equal to your PID
 @pytest.fixture(scope="module")
 def pid():
-    pid = 2
+    pid = 17  # mim 40, OUSD 56
+
     yield pid
 
 @pytest.fixture(scope="module")
@@ -62,7 +63,9 @@ def whale(accounts, amount, token):
     # Totally in it for the tech
     # Update this with a large holder of your want token (the largest EOA holder of LP)
     # MIM 0xBA12222222228d8Ba445958a75a0704d566BF2C8, OUSD 0x89eBCb7714bd0D2F33ce3a35C12dBEB7b94af169
-    whale = accounts.at("0xB6bFD1968955f8E8F176790B8442d44198821794", force=True)
+
+    whale = accounts.at("0xDD4Db3ff8A37FE418dB6FF34fC316655528B6bbC", force=True)
+
     if token.balanceOf(whale) < 2 * amount:
         raise ValueError(
             "Our whale needs more funds. Find another whale or reduce your amount variable."

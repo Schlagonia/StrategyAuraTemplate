@@ -43,7 +43,7 @@ chain_used = 1
 # If testing a Convex strategy, set this equal to your PID
 @pytest.fixture(scope="module")
 def pid():
-    pid = 17  # mim 40, OUSD 56
+    pid = 36  # mim 40, OUSD 56
 
     yield pid
 
